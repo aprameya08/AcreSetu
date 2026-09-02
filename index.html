@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcreSetu — Land Acquisition Risk Assessment</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+:root{
+  --bg:#f5f7fb; --card:#fff; --text:#172033; --muted:#667085; --line:#e6eaf0;
+  --brand:#2457d6; --brand2:#183b91; --high:#c62828; --highbg:#fff0f0;
+  --med:#b77900; --medbg:#fff8e6; --low:#087443; --lowbg:#ecfdf3;
+  --shadow:0 8px 30px rgba(20,32,60,.07);
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:var(--bg);color:var(--text)}
+button,input,select{font:inherit}
+button{cursor:pointer}
+.app{min-height:100vh}
+.topbar{height:70px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;padding:0 34px;gap:30px;position:sticky;top:0;z-index:20}
+.brand{display:flex;align-items:center;gap:12px;margin-right:auto}
+.logo{width:38px;height:38px;border-radius:11px;background:linear-gradient(135deg,#2b66e8,#173c96);color:white;display:grid;place-items:center;font-weight:800}
+.brand h1{font-size:20px;margin:0;letter-spacing:-.4px}
+.brand span{display:block;font-size:11px;color:var(--muted);margin-top:1px}
+.nav{display:flex;gap:6px}
+.nav button{border:0;background:transparent;padding:10px 14px;border-radius:9px;color:#536074;font-weight:600}
+.nav button.active,.nav button:hover{background:#edf3ff;color:var(--brand)}
+.priority{border:1px solid #ffd5d5;background:#fff7f7;color:#9f2020;border-radius:9px;padding:9px 13px;font-weight:700}
+main{max-width:1220px;margin:0 auto;padding:32px 24px 50px}
+.page{display:none}.page.active{display:block}
+.hero{display:flex;justify-content:space-between;gap:24px;align-items:end;margin-bottom:26px}
+.eyebrow{text-transform:uppercase;font-size:11px;font-weight:800;letter-spacing:1.2px;color:var(--brand);margin-bottom:8px}
+h2{font-size:30px;line-height:1.1;margin:0 0 8px;letter-spacing:-.8px}
+.hero p{margin:0;color:var(--muted);max-width:690px}
+.btn{border:0;border-radius:10px;padding:11px 16px;font-weight:750}
+.btn.primary{background:var(--brand);color:white}.btn.primary:hover{background:var(--brand2)}
+.btn.secondary{background:#fff;border:1px solid var(--line);color:#344054}
+.grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:15px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow)}
+.stat{padding:19px}.stat .label{color:var(--muted);font-size:13px;font-weight:650}.stat .num{font-size:31px;font-weight:800;margin-top:7px}.stat.high .num{color:var(--high)}.stat.med .num{color:var(--med)}.stat.low .num{color:var(--low)}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px}
+.chartcard{padding:18px}.charttitle{font-weight:800;margin-bottom:12px}.chartwrap{height:245px}
+.section{margin-top:18px}.sectionhead{display:flex;align-items:center;justify-content:space-between;margin-bottom:11px}.sectionhead h3{margin:0;font-size:17px}
+.tablecard{overflow:hidden}.tablewrap{overflow:auto}
+table{width:100%;border-collapse:collapse;min-width:760px}th,td{padding:13px 15px;text-align:left;border-bottom:1px solid var(--line);font-size:13px}th{font-size:11px;text-transform:uppercase;letter-spacing:.6px;color:#667085;background:#fafbfc}tr:last-child td{border-bottom:0}tbody tr:hover{background:#fafcff}
+.projectname{font-weight:750}.muted{color:var(--muted)}
+.badge{display:inline-flex;align-items:center;gap:5px;border-radius:999px;padding:5px 9px;font-size:11px;font-weight:800;text-transform:uppercase}.badge.high{color:var(--high);background:var(--highbg)}.badge.med{color:var(--med);background:var(--medbg)}.badge.low{color:var(--low);background:var(--lowbg)}
+.score{font-weight:850}
+.formcard{padding:24px;max-width:850px}.formgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px}.field label{display:block;font-size:12px;font-weight:750;margin-bottom:7px}.field input,.field select{width:100%;padding:11px 12px;border:1px solid #d8dee8;border-radius:9px;background:#fff;outline:none}.field input:focus,.field select:focus{border-color:#6c91e9;box-shadow:0 0 0 3px #edf3ff}.full{grid-column:1/-1}
+.checks{display:grid;grid-template-columns:1fr 1fr;gap:10px}.check{display:flex;gap:9px;align-items:center;padding:12px;border:1px solid var(--line);border-radius:9px}.check input{width:17px;height:17px}
+.range{display:flex;gap:12px;align-items:center}.range input{flex:1}.range strong{min-width:35px;text-align:center}
+.actions{display:flex;gap:10px;margin-top:22px}.result{margin-top:20px;padding:18px;border-radius:12px;border:1px solid var(--line);display:none}.result.show{display:block}.resulttop{display:flex;align-items:center;justify-content:space-between;gap:20px}.riskbig{font-size:38px;font-weight:900}.result ul{margin:10px 0 0;padding-left:20px}.recommend{margin-top:14px;padding:13px;background:#f7f9fc;border-radius:9px}
+.detailcard{padding:24px}.detailtop{display:flex;justify-content:space-between;gap:20px;align-items:start}.detailscore{text-align:right}.detailscore .scorebig{font-size:44px;font-weight:900}.factorlist{margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:10px}.factor{padding:14px;border:1px solid var(--line);border-radius:10px}.factor strong{display:block;margin-bottom:5px}.aboutgrid{display:grid;grid-template-columns:1.3fr .7fr;gap:18px}.aboutcard{padding:25px}.aboutcard h3{margin-top:0}.footer{border-top:1px solid var(--line);padding:22px 24px;text-align:center;color:#7a8495;font-size:11px;background:#fff;margin-top:40px}
+.loading{padding:35px;text-align:center;color:var(--muted)}.notice{padding:11px 13px;background:#eef5ff;border:1px solid #d9e6ff;color:#315a9c;border-radius:9px;font-size:12px;margin-bottom:15px}.error{background:#fff4f4;border-color:#ffd6d6;color:#a12727}
+@media(max-width:850px){.topbar{padding:0 15px;gap:8px}.nav{display:none}.grid4{grid-template-columns:1fr 1fr}.two,.aboutgrid{grid-template-columns:1fr}.hero{display:block}.hero .btn{margin-top:18px}.formgrid{grid-template-columns:1fr}.checks,.factorlist{grid-template-columns:1fr}}
+@media(max-width:520px){main{padding:22px 14px}.grid4{grid-template-columns:1fr}.brand span{display:none}.priority{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">A</div>
+    <div><h1>AcreSetu</h1><span>Land Acquisition Risk Assessment</span></div>
+  </div>
+  <nav class="nav">
+    <button class="navbtn active" data-page="dashboard">Dashboard</button>
+    <button class="navbtn" data-page="projects">Projects</button>
+    <button class="navbtn" data-page="assess">Assess Project</button>
+    <button class="navbtn" data-page="about">About</button>
+  </nav>
+  <button class="priority" id="priorityBtn">⚠ 0 Priority Cases</button>
+</header>
+
+<main>
+<section id="dashboard" class="page active">
+  <div class="hero">
+    <div><div class="eyebrow">Decision Support</div><h2>Land Acquisition Risk Dashboard</h2><p>Identify projects at risk of delay, understand the contributing factors, and prioritize cases requiring timely intervention.</p></div>
+    <button class="btn primary" onclick="showPage('assess')">＋ Assess New Project</button>
+  </div>
+  <div id="dataNotice" class="notice">Loading project data…</div>
+  <div class="grid4">
+    <div class="card stat"><div class="label">Total Projects</div><div class="num" id="total">—</div></div>
+    <div class="card stat high"><div class="label">High Risk</div><div class="num" id="high">—</div></div>
+    <div class="card stat med"><div class="label">Medium Risk</div><div class="num" id="med">—</div></div>
+    <div class="card stat low"><div class="label">Low Risk</div><div class="num" id="low">—</div></div>
+  </div>
+  <div class="two">
+    <div class="card chartcard"><div class="charttitle">Primary Delay Factors</div><div class="chartwrap"><canvas id="causeChart"></canvas></div></div>
+    <div class="card chartcard"><div class="charttitle">Risk Distribution</div><div class="chartwrap"><canvas id="riskChart"></canvas></div></div>
+  </div>
+  <div class="section">
+    <div class="sectionhead"><h3>⚠ Priority Projects</h3><button class="btn secondary" onclick="showPage('projects')">View all</button></div>
+    <div class="card tablecard"><div class="tablewrap"><table><thead><tr><th>Project</th><th>Location</th><th>Risk</th><th>Score</th><th>Primary factor</th></tr></thead><tbody id="priorityTable"></tbody></table></div></div>
+  </div>
+</section>
+
+<section id="projects" class="page">
+  <div class="hero"><div><div class="eyebrow">Project Registry</div><h2>Projects</h2><p>Review acquisition projects by predicted delay risk and primary contributing factor.</p></div><button class="btn primary" onclick="showPage('assess')">＋ New Assessment</button></div>
+  <div class="card tablecard"><div class="tablewrap"><table><thead><tr><th>Project</th><th>Location</th><th>Risk</th><th>Score</th><th>Primary factor</th><th></th></tr></thead><tbody id="allTable"></tbody></table></div></div>
+</section>
+
+<section id="detail" class="page">
+  <div class="hero"><div><div class="eyebrow">Project Assessment</div><h2 id="detailName">Project</h2><p id="detailLocation"></p></div><button class="btn secondary" onclick="showPage('projects')">← Back to Projects</button></div>
+  <div class="card detailcard" id="detailBody"></div>
+</section>
+
+<section id="assess" class="page">
+  <div class="hero"><div><div class="eyebrow">New Assessment</div><h2>Assess a Project</h2><p>Enter the available project information to generate a preliminary delay-risk assessment.</p></div></div>
+  <div class="card formcard">
+    <div class="formgrid">
+      <div class="field"><label>Project Name</label><input id="fName" placeholder="e.g. NH-44 Bypass Land Acquisition"></div>
+      <div class="field"><label>Location</label><input id="fLocation" placeholder="e.g. Aligarh, Uttar Pradesh"></div>
+      <div class="field"><label>Pending Clearances</label><input id="fClearances" type="number" min="0" max="20" value="0"></div>
+      <div class="field"><label>Stakeholder Feedback (0–10)</label><div class="range"><input id="fStake" type="range" min="0" max="10" value="7" oninput="stakeVal.textContent=this.value"><strong id="stakeVal">7</strong></div></div>
+      <div class="field"><label>Documentation Status</label><select id="fDocs"><option value="0">Complete</option><option value="1">Gap / Pending</option><option value="2">Significant Gap</option></select></div>
+      <div class="field"><label>Compensation Status</label><select id="fComp"><option value="0">Completed</option><option value="1">Pending</option><option value="2">Delayed</option></select></div>
+      <div class="field full"><label>Risk Indicators</label><div class="checks"><label class="check"><input id="fDispute" type="checkbox"> Active legal dispute</label><label class="check"><input id="fRestoration" type="checkbox"> Restoration / rehabilitation pending</label></div></div>
+    </div>
+    <div class="actions"><button class="btn primary" onclick="assessProject()">Generate Risk Assessment</button><button class="btn secondary" onclick="clearForm()">Clear</button></div>
+    <div class="result" id="result"></div>
+  </div>
+</section>
+
+<section id="about" class="page">
+  <div class="hero"><div><div class="eyebrow">About AcreSetu</div><h2>From risk detection to timely intervention.</h2><p>A prototype decision-support platform for land acquisition projects that may be vulnerable to delays.</p></div></div>
+  <div class="aboutgrid">
+    <div class="card aboutcard"><h3>What AcreSetu does</h3><p>AcreSetu brings key acquisition indicators into one place, produces a preliminary delay-risk score, highlights the factors contributing to the risk, and helps officials prioritize cases that may need attention.</p><h3>How it works</h3><p><b>1. Collect</b> project information → <b>2. Assess</b> risk indicators → <b>3. Explain</b> the contributing factors → <b>4. Prioritize</b> cases for intervention.</p><h3>Prototype note</h3><p>The current demonstration uses simulated project records. Production deployment would require validation using appropriate historical and departmental data.</p></div>
+    <div class="card aboutcard"><h3>Hackathon</h3><p><b>Smart India Hackathon 2026</b></p><p>Problem Statement: <b>SIH26017</b></p><p>Team: <b>AcreMinds</b></p><hr style="border:0;border-top:1px solid var(--line);margin:20px 0"><h3>Technology</h3><p>Web application · Supabase database · Risk assessment engine</p></div>
+  </div>
+</section>
+</main>
+
+<footer class="footer">AcreSetu · Land Acquisition Risk Assessment &nbsp;|&nbsp; Smart India Hackathon 2026 · PS ID SIH26017 · Team AcreMinds</footer>
+</div>
+
+<script>
+const SUPABASE_URL = "https://wmuwafacrvbyaectpdiz.supabase.co";
+const SUPABASE_KEY = "sb_publishable_n6pXfuQkl8imREZTq6jQTg_kE2N1scG";
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let projects = [];
+let causeChart, riskChart;
+
+const fallback = [
+  ["Eastern Peripheral Expressway extension","Ghaziabad, Uttar Pradesh",4,2,1,true,false,1,100,"high","Pending clearances"],
+  ["Sardar Sarovar canal lining project","Vadodara, Gujarat",1,0,0,false,false,8,14,"low","Pending clearances"],
+  ["Chennai Peripheral Ring Road land parcel","Chennai, Tamil Nadu",1,1,2,true,false,5,88,"high","Compensation issues"],
+  ["Rural water pipeline corridor","Nagpur, Maharashtra",0,0,0,false,false,9,3,"low","Weak stakeholder sentiment"],
+  ["Smart city road widening, Sector 62","Noida, Uttar Pradesh",2,1,0,false,true,6,53,"med","Pending clearances"],
+  ["Coastal highway land acquisition","Kochi, Kerala",2,2,1,true,true,3,100,"high","Documentation gaps"],
+  ["Industrial corridor land bank","Pune, Maharashtra",1,1,0,false,false,6,35,"med","Documentation gaps"],
+  ["Riverfront development plot","Ahmedabad, Gujarat",0,0,0,false,false,8,6,"low","Weak stakeholder sentiment"],
+  ["Metro depot land parcel","Bengaluru, Karnataka",2,0,1,false,true,5,56,"med","Pending clearances"],
+  ["Airport expansion land acquisition","Lucknow, Uttar Pradesh",3,1,2,true,true,2,100,"high","Compensation issues"]
+].map((p,i)=>({id:"demo-"+i,project_name:p[0],location:p[1],pending_clearances:p[2],documentation_gap:p[3],compensation_status:p[4],dispute_flag:p[5],restoration_pending:p[6],stakeholder_feedback_score:p[7],risk_score:p[8],risk_level:p[9],primary_reason:p[10]}));
+
+function esc(v){return String(v??"").replace(/[&<>"']/g,m=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#039;"}[m]))}
+function cls(r){return r==="high"?"high":r==="med"?"med":"low"}
+function badge(r){return `<span class="badge ${cls(r)}">${r==="high"?"High":r==="med"?"Medium":"Low"}</span>`}
+function score(p){return Number(p.risk_score||0)}
+
+async function loadData(){
+  const cached = localStorage.getItem("acresetu_cache");
+  if(cached){try{projects=JSON.parse(cached); render(); setNotice("Showing cached project data while the live database refreshes.");}catch(e){}}
+  const timeout = new Promise((_,rej)=>setTimeout(()=>rej(new Error("timeout")),5000));
+  try{
+    const query = db.from("land_projects").select("*").order("risk_score",{ascending:false});
+    const {data,error}=await Promise.race([query,timeout]);
+    if(error) throw error;
+    if(data && data.length){projects=data;localStorage.setItem("acresetu_cache",JSON.stringify(projects));render();setNotice("Live project data loaded.");}
+    else {if(!projects.length){projects=fallback;render()}setNotice("No saved projects found. Showing demonstration data.");}
+  }catch(e){
+    if(!projects.length){projects=fallback;render()}
+    setNotice("Live data is taking longer than expected. Showing the latest available demonstration data.",true);
+  }
+}
+function setNotice(text,error=false){const n=document.getElementById("dataNotice");if(n){n.textContent=text;n.className="notice"+(error?" error":"")}}
+function render(){
+  const total=projects.length, high=projects.filter(p=>p.risk_level==="high").length, med=projects.filter(p=>p.risk_level==="med").length, low=projects.filter(p=>p.risk_level==="low").length;
+  document.getElementById("total").textContent=total;document.getElementById("high").textContent=high;document.getElementById("med").textContent=med;document.getElementById("low").textContent=low;
+  document.getElementById("priorityBtn").textContent=`⚠ ${high} Priority Cases`;
+  const top=[...projects].sort((a,b)=>score(b)-score(a)).slice(0,5);
+  document.getElementById("priorityTable").innerHTML=top.map(p=>`<tr onclick="openDetail('${esc(p.id)}')" style="cursor:pointer"><td><span class="projectname">${esc(p.project_name)}</span></td><td class="muted">${esc(p.location)}</td><td>${badge(p.risk_level)}</td><td class="score">${score(p)}%</td><td>${esc(p.primary_reason)}</td></tr>`).join("");
+  document.getElementById("allTable").innerHTML=[...projects].sort((a,b)=>score(b)-score(a)).map(p=>`<tr><td><span class="projectname">${esc(p.project_name)}</span></td><td class="muted">${esc(p.location)}</td><td>${badge(p.risk_level)}</td><td class="score">${score(p)}%</td><td>${esc(p.primary_reason)}</td><td><button class="btn secondary" onclick="openDetail('${esc(p.id)}')">View</button></td></tr>`).join("");
+  const causes={};projects.forEach(p=>{const c=p.primary_reason||"Other";causes[c]=(causes[c]||0)+1});
+  if(causeChart)causeChart.destroy(); if(riskChart)riskChart.destroy();
+  causeChart=new Chart(document.getElementById("causeChart"),{type:"bar",data:{labels:Object.keys(causes),datasets:[{data:Object.values(causes),borderRadius:6}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{precision:0}}}}});
+  riskChart=new Chart(document.getElementById("riskChart"),{type:"doughnut",data:{labels:["High","Medium","Low"],datasets:[{data:[high,med,low],borderWidth:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:"bottom"}}}});
+}
+function openDetail(id){
+  const p=projects.find(x=>String(x.id)===String(id)); if(!p)return;
+  document.getElementById("detailName").textContent=p.project_name;
+  document.getElementById("detailLocation").textContent=p.location;
+  const factors=[
+    ["Pending clearances",`${p.pending_clearances} pending`,Number(p.pending_clearances)>0?"Needs attention":"Clear"],
+    ["Documentation",""+(Number(p.documentation_gap)===0?"Complete":Number(p.documentation_gap)===1?"Gap / pending":"Significant gap"),Number(p.documentation_gap)>0?"Needs attention":"Clear"],
+    ["Compensation",""+(Number(p.compensation_status)===0?"Completed":Number(p.compensation_status)===1?"Pending":"Delayed"),Number(p.compensation_status)>0?"Needs attention":"Clear"],
+    ["Legal dispute",p.dispute_flag?"Active":"None",p.dispute_flag?"Needs attention":"Clear"],
+    ["Restoration / rehabilitation",p.restoration_pending?"Pending":"Completed",p.restoration_pending?"Needs attention":"Clear"],
+    ["Stakeholder feedback",`${p.stakeholder_feedback_score}/10`,Number(p.stakeholder_feedback_score)<5?"Needs attention":"Stable"]
+  ];
+  const reasons=factors.filter(x=>x[2]==="Needs attention").map(x=>x[0]);
+  let recommendation="Continue routine monitoring and maintain current acquisition schedule.";
+  if(p.risk_level==="high") recommendation="Prioritize this case for review, focusing first on the highlighted risk factors before the next acquisition stage.";
+  else if(p.risk_level==="med") recommendation="Monitor the highlighted factors closely and resolve pending items before they become critical.";
+  document.getElementById("detailBody").innerHTML=`<div class="detailtop"><div><div class="eyebrow">Risk assessment</div><p style="max-width:680px;color:#667085;margin-top:0">Preliminary assessment based on the available project indicators.</p></div><div class="detailscore">${badge(p.risk_level)}<div class="scorebig">${score(p)}%</div><div class="muted">delay-risk score</div></div></div><div class="section"><h3>Why is this project at risk?</h3><div class="factorlist">${factors.map(f=>`<div class="factor"><strong>${esc(f[0])}</strong><span class="muted">${esc(f[1])} · ${f[2]==="Needs attention"?"Requires attention":"No immediate issue"}</span></div>`).join("")}</div></div><div class="recommend"><b>Recommended priority</b><p style="margin:6px 0 0">${esc(recommendation)}</p></div>`;
+  showPage("detail");
+}
+function assessProject(){
+  const name=document.getElementById("fName").value.trim(), loc=document.getElementById("fLocation").value.trim();
+  if(!name||!loc){alert("Please enter the project name and location.");return}
+  const c=Number(document.getElementById("fClearances").value||0), s=Number(document.getElementById("fStake").value), d=Number(document.getElementById("fDocs").value), comp=Number(document.getElementById("fComp").value), dispute=document.getElementById("fDispute").checked, rest=document.getElementById("fRestoration").checked;
+  let risk=Math.min(100, Math.round(c*9+d*13+comp*15+(dispute?24:0)+(rest?9:0)+(10-s)*2));
+  let level=risk>=70?"high":risk>=40?"med":"low";
+  let reasons=[];
+  if(c>0) reasons.push("Pending clearances");
+  if(d>0) reasons.push("Documentation gaps");
+  if(comp>0) reasons.push("Compensation issues");
+  if(dispute) reasons.push("Legal dispute");
+  if(rest) reasons.push("Restoration pending");
+  if(!reasons.length && s<7) reasons.push("Weak stakeholder sentiment");
+  if(!reasons.length) reasons.push("No major issues");
+  const result=document.getElementById("result"); result.className="result show";
+  result.innerHTML=`<div class="resulttop"><div><div class="eyebrow">Preliminary assessment</div><div class="riskbig">${risk}%</div>${badge(level)}</div><div style="max-width:380px"><b>Main contributing factors</b><ul>${reasons.slice(0,4).map(r=>`<li>${esc(r)}</li>`).join("")}</ul></div></div><div class="recommend"><b>Recommended priority</b><p style="margin:6px 0 0">${level==="high"?"Immediate review recommended for the highlighted factors.":level==="med"?"Close monitoring recommended; resolve pending items early.":"Routine monitoring recommended."}</p></div><div class="actions"><button class="btn primary" onclick="saveAssessment(${risk},'${level}','${esc(reasons[0])}')">Save Assessment</button></div>`;
+}
+async function saveAssessment(risk,level,reason){
+  const row={project_name:document.getElementById("fName").value.trim(),location:document.getElementById("fLocation").value.trim(),pending_clearances:Number(document.getElementById("fClearances").value||0),documentation_gap:Number(document.getElementById("fDocs").value),compensation_status:Number(document.getElementById("fComp").value),dispute_flag:document.getElementById("fDispute").checked,restoration_pending:document.getElementById("fRestoration").checked,stakeholder_feedback_score:Number(document.getElementById("fStake").value),risk_score:risk,risk_level:level,primary_reason:reason};
+  try{
+    const {data,error}=await db.from("land_projects").insert(row).select().single();
+    if(error)throw error;
+    projects.unshift(data);localStorage.setItem("acresetu_cache",JSON.stringify(projects));render();
+    document.getElementById("result").insertAdjacentHTML("beforeend",'<p style="color:#087443;font-weight:700">✓ Assessment saved successfully.</p>');
+  }catch(e){
+    projects.unshift({...row,id:"local-"+Date.now()});localStorage.setItem("acresetu_cache",JSON.stringify(projects));render();
+    document.getElementById("result").insertAdjacentHTML("beforeend",'<p style="color:#9f2020;font-weight:700">Saved locally for this prototype. The database could not be reached.</p>');
+  }
+}
+function clearForm(){["fName","fLocation"].forEach(id=>document.getElementById(id).value="");document.getElementById("fClearances").value=0;document.getElementById("fStake").value=7;document.getElementById("stakeVal").textContent=7;document.getElementById("fDocs").value=0;document.getElementById("fComp").value=0;document.getElementById("fDispute").checked=false;document.getElementById("fRestoration").checked=false;document.getElementById("result").className="result"}
+function showPage(id){document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));document.getElementById(id).classList.add("active");document.querySelectorAll(".navbtn").forEach(b=>b.classList.toggle("active",b.dataset.page===id));window.scrollTo({top:0,behavior:"smooth"})}
+document.querySelectorAll(".navbtn").forEach(b=>b.addEventListener("click",()=>showPage(b.dataset.page)));
+document.getElementById("priorityBtn").addEventListener("click",()=>showPage("projects"));
+loadData();
+</script>
+</body>
+</html>
