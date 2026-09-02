@@ -1,0 +1,521 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AcreSetu — Land Acquisition Risk Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root{
+    --bg: #0D1310;
+    --surface: #141C18;
+    --surface-alt: #19221D;
+    --border: #26302A;
+    --border-strong: #384439;
+    --text: #E7E4D8;
+    --text-soft: #9AA69A;
+    --text-mute: #67716A;
+    --teal: #4FA88F;
+    --teal-dim: #2E5B4E;
+    --amber: #D9A441;
+    --rust: #C4573F;
+    --sage: #5FAE7A;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'IBM Plex Sans',-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height:1.55;
+  }
+  .mono{ font-family:'IBM Plex Mono',monospace; }
+ 
+  .app{ display:flex; min-height:100vh; }
+  .sidebar{
+    width:216px; flex-shrink:0; background:var(--surface); color:var(--text-soft);
+    padding:26px 22px; display:flex; flex-direction:column; gap:30px; border-right:1px solid var(--border);
+  }
+  .brand .mark{ font-size:20px; font-weight:600; color:var(--text); }
+  .brand .tag{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--teal); margin-top:4px; }
+  .nav{ display:flex; flex-direction:column; }
+  .nav button{
+    all:unset; cursor:pointer; padding:10px 4px; font-size:13.5px;
+    color:var(--text-mute); border-left:2px solid transparent; padding-left:12px;
+  }
+  .nav button:hover{ color:var(--text); }
+  .nav button.active{ color:var(--text); border-left-color:var(--teal); font-weight:500; }
+  .sidebar-foot{ margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-mute); line-height:1.7; }
+  .sidebar-foot .dot{ display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:6px; }
+  .dot.on{ background:var(--teal); } .dot.off{ background:var(--amber); }
+ 
+  .main{ flex:1; max-width:1100px; }
+  .masthead{
+    background: var(--surface); color:var(--text); padding:32px 42px 24px;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='80'><path d='M0 40 Q40 15 80 40 T160 40' stroke='rgba(79,168,143,0.14)' fill='none' stroke-width='1'/><path d='M0 58 Q40 33 80 58 T160 58' stroke='rgba(79,168,143,0.09)' fill='none' stroke-width='1'/><path d='M0 22 Q40 -3 80 22 T160 22' stroke='rgba(79,168,143,0.06)' fill='none' stroke-width='1'/></svg>");
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .masthead .eyebrow{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--teal); margin-bottom:10px; }
+  .masthead h1{ font-weight:600; font-size:26px; margin:0 0 6px; }
+  .masthead .sub{ font-size:14px; color:var(--text-soft); max-width:520px; }
+ 
+  .content{ padding:28px 42px 50px; }
+ 
+  .banner{ display:flex; align-items:center; justify-content:space-between; padding:11px 16px; border-radius:4px; font-size:13px; margin-bottom:24px; border:1px solid; font-family:'IBM Plex Mono',monospace; }
+  .banner.demo{ background:rgba(217,164,65,0.08); color:var(--amber); border-color:rgba(217,164,65,0.35); }
+  .banner.live{ background:rgba(79,168,143,0.08); color:var(--teal); border-color:rgba(79,168,143,0.35); }
+  .banner button{ all:unset; cursor:pointer; text-decoration:underline; font-size:13px; }
+ 
+  .ledger{
+    display:flex; border:1px solid var(--border); border-radius:6px;
+    margin-bottom:26px; background:var(--surface); overflow:hidden;
+  }
+  .ledger .cell{ flex:1; padding:16px 20px; border-left:1px solid var(--border); }
+  .ledger .cell:first-child{ border-left:none; }
+  .ledger .label{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--text-mute); margin-bottom:8px; }
+  .ledger .value{ font-family:'IBM Plex Mono',monospace; font-size:28px; font-weight:500; color:var(--text); }
+  .ledger .value.high{ color:var(--rust); } .ledger .value.med{ color:var(--amber); } .ledger .value.low{ color:var(--sage); }
+ 
+  .two-col{ display:grid; grid-template-columns:1.1fr 1fr; gap:20px; margin-bottom:26px; }
+  .panel{ background:var(--surface); border:1px solid var(--border); border-radius:6px; padding:20px 22px; }
+  .panel h2{ font-weight:600; font-size:15px; margin:0 0 14px; }
+ 
+  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
+  th{ text-align:left; color:var(--text-mute); font-weight:500; font-size:11px; padding:8px 10px; border-bottom:1px solid var(--border-strong); font-family:'IBM Plex Mono',monospace; }
+  td{ padding:11px 10px; border-bottom:1px solid var(--border); vertical-align:middle; color:var(--text); }
+  tr:last-child td{ border-bottom:none; }
+ 
+  .tag{
+    display:inline-block; padding:3px 9px; border-radius:3px;
+    font-family:'IBM Plex Mono',monospace; font-size:11.5px; font-weight:500;
+    border:1px solid;
+  }
+  .tag.high{ color:var(--rust); border-color:var(--rust); background:rgba(196,87,63,0.08); }
+  .tag.med{ color:var(--amber); border-color:var(--amber); background:rgba(217,164,65,0.08); }
+  .tag.low{ color:var(--sage); border-color:var(--sage); background:rgba(95,174,122,0.08); }
+  .reason{ color:var(--text-soft); font-size:12.5px; }
+ 
+  form label{ display:block; font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--text-mute); margin:13px 0 6px; }
+  form input[type=text], form input[type=number], form select{
+    width:100%; padding:9px 11px; border:1px solid var(--border-strong); border-radius:4px; font-size:13.5px;
+    background:var(--surface-alt); color:var(--text); font-family:'IBM Plex Sans',sans-serif;
+  }
+  form input:focus, form select:focus{ outline:none; border-color:var(--teal); }
+  form .row2{ display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .checkline{ display:flex; align-items:center; gap:8px; margin-top:14px; }
+  .checkline input{ width:auto; }
+  .checkline label{ margin:0; font-family:'IBM Plex Sans',sans-serif; font-size:13.5px; color:var(--text); }
+ 
+  .btn{ display:inline-block; padding:10px 20px; border-radius:4px; font-size:13.5px; font-weight:500; cursor:pointer; border:1px solid transparent; font-family:'IBM Plex Sans',sans-serif; }
+  .btn-primary{ background:var(--teal); color:#08120E; }
+  .btn-primary:hover{ background:#5FBB9F; }
+  .btn-ghost{ background:transparent; border-color:var(--border-strong); color:var(--text); }
+  .btn-ghost:hover{ background:var(--surface-alt); }
+  .actions{ display:flex; gap:10px; margin-top:22px; }
+ 
+  .empty{ color:var(--text-mute); font-size:13.5px; padding:24px 0; text-align:center; }
+  .pill-row{ display:flex; gap:16px; flex-wrap:wrap; font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--text-soft); margin-top:12px; }
+  .legend-dot{ display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:5px; }
+ 
+  .err{ color:var(--rust); font-size:12.5px; margin-top:6px; }
+  .conn-status{ font-family:'IBM Plex Mono',monospace; font-size:12px; margin-top:8px; }
+  .conn-status.ok{ color:var(--sage); }
+  .conn-status.bad{ color:var(--rust); }
+  .helper{ font-size:12px; color:var(--text-mute); margin-top:4px; }
+</style>
+</head>
+<body>
+ 
+<div class="app">
+  <div class="sidebar">
+    <div class="brand">
+      <div class="mark">AcreSetu</div>
+      <div class="tag">land_acquisition_risk</div>
+    </div>
+    <div class="nav">
+      <button id="nav-dash" class="active">Dashboard</button>
+      <button id="nav-add">Add project</button>
+      <button id="nav-connect">Connection</button>
+    </div>
+    <div class="sidebar-foot">
+      <div><span class="dot off" id="statusDot"></span><span id="statusText">connecting...</span></div>
+      <div style="margin-top:8px;">SIH26017 / team AcreMinds</div>
+    </div>
+  </div>
+ 
+  <div class="main">
+ 
+    <div id="view-dashboard">
+      <div class="masthead">
+        <div class="eyebrow mono">SIH26017 · smart india hackathon 2026</div>
+        <h1>Risk console</h1>
+        <div class="sub">Projects ranked by predicted likelihood of delay, with the leading cause flagged for each.</div>
+      </div>
+ 
+      <div class="content">
+        <div id="banner"></div>
+ 
+        <div class="ledger">
+          <div class="cell"><div class="label">total_projects</div><div class="value" id="kpi-total">—</div></div>
+          <div class="cell"><div class="label">high_risk</div><div class="value high" id="kpi-high">—</div></div>
+          <div class="cell"><div class="label">medium_risk</div><div class="value med" id="kpi-med">—</div></div>
+          <div class="cell"><div class="label">low_risk</div><div class="value low" id="kpi-low">—</div></div>
+        </div>
+ 
+        <div class="two-col">
+          <div class="panel">
+            <h2>Risk by leading cause</h2>
+            <div style="position:relative;height:220px;">
+              <canvas id="reasonChart" role="img" aria-label="Bar chart of project count by leading risk cause">Chart showing count of projects per leading delay cause.</canvas>
+            </div>
+          </div>
+          <div class="panel">
+            <h2>Risk distribution</h2>
+            <div style="position:relative;height:220px;">
+              <canvas id="riskChart" role="img" aria-label="Donut chart of projects by risk level: high, medium, low">Chart showing proportion of projects at each risk level.</canvas>
+            </div>
+            <div class="pill-row" id="riskLegend"></div>
+          </div>
+        </div>
+ 
+        <div class="panel">
+          <h2>Projects, ranked by risk score</h2>
+          <table>
+            <thead><tr><th>Project</th><th>Location</th><th>Risk</th><th>Score</th><th>Leading cause</th></tr></thead>
+            <tbody id="projectRows"></tbody>
+          </table>
+          <div class="empty" id="emptyMsg" style="display:none;">No projects yet. Add one, or check the Connection tab.</div>
+        </div>
+      </div>
+    </div>
+ 
+    <div id="view-add" style="display:none;">
+      <div class="masthead">
+        <div class="eyebrow mono">new_entry</div>
+        <h1>Add a project</h1>
+        <div class="sub">Enter what's known so far — the risk model scores it instantly.</div>
+      </div>
+      <div class="content">
+        <div class="panel" style="max-width:560px;">
+          <form id="projectForm">
+            <label>project_name</label>
+            <input type="text" id="f-name" placeholder="NH-44 bypass land parcel, Sector 12">
+ 
+            <label>location</label>
+            <input type="text" id="f-location" placeholder="Aligarh, Uttar Pradesh">
+ 
+            <div class="row2">
+              <div>
+                <label>pending_clearances (count)</label>
+                <input type="number" id="f-clearances" min="0" max="10" value="0">
+              </div>
+              <div>
+                <label>stakeholder_feedback (0–10)</label>
+                <input type="number" id="f-feedback" min="0" max="10" value="7">
+              </div>
+            </div>
+ 
+            <div class="row2">
+              <div>
+                <label>documentation_status</label>
+                <select id="f-doc">
+                  <option value="0">Complete</option>
+                  <option value="1">Partial</option>
+                  <option value="2">Missing</option>
+                </select>
+              </div>
+              <div>
+                <label>compensation_status</label>
+                <select id="f-comp">
+                  <option value="0">Settled</option>
+                  <option value="1">In progress</option>
+                  <option value="2">Disputed</option>
+                </select>
+              </div>
+            </div>
+ 
+            <div class="checkline"><input type="checkbox" id="f-dispute"><label for="f-dispute">Active legal dispute</label></div>
+            <div class="checkline"><input type="checkbox" id="f-restoration"><label for="f-restoration">Restoration/rehabilitation pending</label></div>
+ 
+            <div id="formErr" class="err"></div>
+            <div class="actions">
+              <button type="submit" class="btn btn-primary">Score and save project</button>
+              <button type="button" id="cancelAdd" class="btn btn-ghost">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+ 
+    <div id="view-connect" style="display:none;">
+      <div class="masthead">
+        <div class="eyebrow mono">backend</div>
+        <h1>Connection</h1>
+        <div class="sub">AcreSetu reads and writes to this Supabase project. Credentials are held only in this browser tab.</div>
+      </div>
+      <div class="content">
+        <div class="panel" style="max-width:560px;">
+          <label>supabase_url</label>
+          <input type="text" id="f-url" placeholder="https://xxxxxxxx.supabase.co">
+          <label>publishable_key</label>
+          <input type="text" id="f-key" placeholder="sb_publishable_...">
+          <div class="helper">Prefilled with the AcreSetu project credentials — change these to point at your own Supabase project.</div>
+          <div class="actions">
+            <button id="connectBtn" class="btn btn-primary">Connect</button>
+            <button id="demoBtn" class="btn btn-ghost">Use demo data instead</button>
+          </div>
+          <div id="connStatus" class="conn-status"></div>
+        </div>
+      </div>
+    </div>
+ 
+  </div>
+</div>
+ 
+<script>
+const DEFAULT_URL = "https://wmuwafacrvbyaectpdiz.supabase.co";
+const DEFAULT_KEY = "sb_publishable_n6pXfuQkl8imREZTq6jQTg_kE2N1scG";
+ 
+let supaUrl = null, supaKey = null, mode = 'connecting';
+let projects = [];
+let reasonChart = null, riskChart = null;
+ 
+document.getElementById('f-url').value = DEFAULT_URL;
+document.getElementById('f-key').value = DEFAULT_KEY;
+ 
+const views = { dashboard: 'view-dashboard', add: 'view-add', connect: 'view-connect' };
+function showView(name){
+  Object.values(views).forEach(id => document.getElementById(id).style.display = 'none');
+  document.getElementById(views[name]).style.display = 'block';
+  document.querySelectorAll('.nav button').forEach(b => b.classList.remove('active'));
+  document.getElementById('nav-' + (name === 'dashboard' ? 'dash' : name)).classList.add('active');
+  if (name === 'dashboard') renderAll();
+}
+document.getElementById('nav-dash').onclick = () => showView('dashboard');
+document.getElementById('nav-add').onclick = () => showView('add');
+document.getElementById('nav-connect').onclick = () => showView('connect');
+document.getElementById('cancelAdd').onclick = () => showView('dashboard');
+ 
+function scoreProject(p){
+  let score = p.pending_clearances*8 + p.documentation_gap*15 + p.compensation_status*15
+            + (p.dispute_flag ? 20 : 0) + (p.restoration_pending ? 10 : 0)
+            + (10 - p.stakeholder_feedback_score)*3;
+  score = Math.max(0, Math.min(100, Math.round(score)));
+  const level = score >= 67 ? 'high' : score >= 34 ? 'med' : 'low';
+  const contributions = [
+    ['Pending clearances', p.pending_clearances*8],
+    ['Documentation gaps', p.documentation_gap*15],
+    ['Compensation issues', p.compensation_status*15],
+    ['Legal dispute', p.dispute_flag ? 20 : 0],
+    ['Restoration pending', p.restoration_pending ? 10 : 0],
+    ['Weak stakeholder sentiment', (10 - p.stakeholder_feedback_score)*3]
+  ];
+  contributions.sort((a,b) => b[1]-a[1]);
+  const primary_reason = contributions[0][1] > 0 ? contributions[0][0] : 'No significant risk factors';
+  return { risk_score: score, risk_level: level, primary_reason };
+}
+ 
+function demoData(){
+  const rows = [
+    { project_name:'NH-44 bypass, Sector 12', location:'Aligarh, UP', pending_clearances:3, documentation_gap:2, compensation_status:2, dispute_flag:true, restoration_pending:true, stakeholder_feedback_score:2 },
+    { project_name:'Yamuna riverside canal widening', location:'Mathura, UP', pending_clearances:1, documentation_gap:1, compensation_status:0, dispute_flag:false, restoration_pending:false, stakeholder_feedback_score:8 },
+    { project_name:'Rural electrification corridor', location:'Bareilly, UP', pending_clearances:2, documentation_gap:0, compensation_status:1, dispute_flag:false, restoration_pending:true, stakeholder_feedback_score:5 },
+    { project_name:'District hospital land parcel', location:'Meerut, UP', pending_clearances:0, documentation_gap:0, compensation_status:0, dispute_flag:false, restoration_pending:false, stakeholder_feedback_score:9 },
+    { project_name:'Irrigation channel extension', location:'Etah, UP', pending_clearances:4, documentation_gap:2, compensation_status:1, dispute_flag:true, restoration_pending:false, stakeholder_feedback_score:3 },
+    { project_name:'Solar park access road', location:'Firozabad, UP', pending_clearances:1, documentation_gap:0, compensation_status:0, dispute_flag:false, restoration_pending:false, stakeholder_feedback_score:7 }
+  ];
+  return rows.map(r => ({ id: crypto.randomUUID(), ...r, ...scoreProject(r) }));
+}
+ 
+function setStatus(){
+  const dot = document.getElementById('statusDot');
+  const text = document.getElementById('statusText');
+  if (mode === 'live'){ dot.className='dot on'; text.textContent='live · supabase connected'; }
+  else if (mode === 'demo'){ dot.className='dot off'; text.textContent='demo data'; }
+  else { dot.className='dot off'; text.textContent='connecting...'; }
+}
+ 
+function renderBanner(){
+  const b = document.getElementById('banner');
+  if (mode === 'live'){
+    b.innerHTML = `<div class="banner live"><span>connected to supabase — showing live data from your project.</span></div>`;
+  } else if (mode === 'demo'){
+    b.innerHTML = `<div class="banner demo"><span>showing demo data — supabase isn't connected right now.</span><button id="goConnect">check connection →</button></div>`;
+    document.getElementById('goConnect').onclick = () => showView('connect');
+  } else {
+    b.innerHTML = `<div class="banner demo"><span>connecting to supabase...</span></div>`;
+  }
+}
+ 
+function renderKPIs(){
+  const total = projects.length;
+  const high = projects.filter(p=>p.risk_level==='high').length;
+  const med = projects.filter(p=>p.risk_level==='med').length;
+  const low = projects.filter(p=>p.risk_level==='low').length;
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-high').textContent = high;
+  document.getElementById('kpi-med').textContent = med;
+  document.getElementById('kpi-low').textContent = low;
+}
+ 
+function renderTable(){
+  const tbody = document.getElementById('projectRows');
+  const empty = document.getElementById('emptyMsg');
+  const sorted = [...projects].sort((a,b)=>b.risk_score-a.risk_score);
+  tbody.innerHTML = '';
+  empty.style.display = sorted.length ? 'none' : 'block';
+  sorted.forEach(p=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${escapeHtml(p.project_name)}</td>
+      <td>${escapeHtml(p.location||'—')}</td>
+      <td><span class="tag ${p.risk_level}">${p.risk_level==='high'?'high':p.risk_level==='med'?'medium':'low'}</span></td>
+      <td class="mono">${p.risk_score}</td>
+      <td class="reason">${escapeHtml(p.primary_reason)}</td>`;
+    tbody.appendChild(tr);
+  });
+}
+ 
+function escapeHtml(s){ const d=document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+ 
+function renderCharts(){
+  const ctx1 = document.getElementById('reasonChart');
+  const reasonCounts = {};
+  projects.forEach(p=>{ reasonCounts[p.primary_reason] = (reasonCounts[p.primary_reason]||0)+1; });
+  const labels = Object.keys(reasonCounts);
+  const data = Object.values(reasonCounts);
+  if (reasonChart) reasonChart.destroy();
+  reasonChart = new Chart(ctx1, {
+    type:'bar',
+    data:{ labels, datasets:[{ label:'Projects', data, backgroundColor:'#4FA88F', borderRadius:3, maxBarThickness:26 }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}},
+      scales:{
+        y:{ beginAtZero:true, ticks:{precision:0, color:'#9AA69A'}, grid:{color:'#26302A'} },
+        x:{ ticks:{ autoSkip:false, maxRotation:30, minRotation:0, color:'#9AA69A' }, grid:{color:'#26302A'} }
+      } }
+  });
+ 
+  const ctx2 = document.getElementById('riskChart');
+  const counts = ['high','med','low'].map(l => projects.filter(p=>p.risk_level===l).length);
+  if (riskChart) riskChart.destroy();
+  riskChart = new Chart(ctx2, {
+    type:'doughnut',
+    data:{ labels:['High','Medium','Low'], datasets:[{ data: counts, backgroundColor:['#C4573F','#D9A441','#5FAE7A'], borderWidth:2, borderColor:'#141C18' }] },
+    options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+  });
+  document.getElementById('riskLegend').innerHTML = `
+    <span><span class="legend-dot" style="background:#C4573F"></span>high ${counts[0]}</span>
+    <span><span class="legend-dot" style="background:#D9A441"></span>medium ${counts[1]}</span>
+    <span><span class="legend-dot" style="background:#5FAE7A"></span>low ${counts[2]}</span>`;
+}
+ 
+function renderAll(){
+  setStatus();
+  renderBanner();
+  renderKPIs();
+  renderTable();
+  renderCharts();
+}
+ 
+async function fetchProjects(){
+  const res = await fetch(`${supaUrl}/rest/v1/land_projects?select=*`, {
+    headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}` }
+  });
+  if (!res.ok) throw new Error('Fetch failed: ' + res.status);
+  return res.json();
+}
+ 
+async function insertProject(row){
+  const res = await fetch(`${supaUrl}/rest/v1/land_projects`, {
+    method:'POST',
+    headers: { apikey: supaKey, Authorization: `Bearer ${supaKey}`, 'Content-Type':'application/json', Prefer:'return=representation' },
+    body: JSON.stringify(row)
+  });
+  if (!res.ok) throw new Error('Insert failed: ' + res.status);
+  return res.json();
+}
+ 
+async function tryConnect(url, key, silent){
+  const status = document.getElementById('connStatus');
+  if (!silent){ status.textContent = 'connecting...'; status.className = 'conn-status'; }
+  try{
+    supaUrl = url.trim().replace(/\/$/, ''); supaKey = key.trim();
+    const rows = await fetchProjects();
+    projects = rows.map(r => ({ ...r, ...(r.risk_score != null ? {} : scoreProject(r)) }));
+    mode = 'live';
+    if (!silent){ status.textContent = 'connected — ' + projects.length + ' project(s) loaded.'; status.className='conn-status ok'; }
+    renderAll();
+    return true;
+  }catch(e){
+    if (!silent){ status.textContent = 'could not connect — check the url, key, and that the table exists. (' + e.message + ')'; status.className = 'conn-status bad'; }
+    return false;
+  }
+}
+ 
+document.getElementById('connectBtn').onclick = async () => {
+  const url = document.getElementById('f-url').value.trim();
+  const key = document.getElementById('f-key').value.trim();
+  if (!url || !key){ const s=document.getElementById('connStatus'); s.textContent='enter both the url and the key.'; s.className='conn-status bad'; return; }
+  const ok = await tryConnect(url, key, false);
+  if (ok) showView('dashboard');
+};
+ 
+document.getElementById('demoBtn').onclick = () => {
+  projects = demoData(); mode = 'demo';
+  document.getElementById('connStatus').textContent = '';
+  showView('dashboard');
+};
+ 
+document.getElementById('projectForm').onsubmit = async (e) => {
+  e.preventDefault();
+  const errEl = document.getElementById('formErr');
+  const name = document.getElementById('f-name').value.trim();
+  if (!name){ errEl.textContent = 'Enter a project name.'; return; }
+  errEl.textContent = '';
+ 
+  const base = {
+    project_name: name,
+    location: document.getElementById('f-location').value.trim(),
+    pending_clearances: parseInt(document.getElementById('f-clearances').value || '0', 10),
+    documentation_gap: parseInt(document.getElementById('f-doc').value, 10),
+    compensation_status: parseInt(document.getElementById('f-comp').value, 10),
+    dispute_flag: document.getElementById('f-dispute').checked,
+    restoration_pending: document.getElementById('f-restoration').checked,
+    stakeholder_feedback_score: parseInt(document.getElementById('f-feedback').value || '5', 10)
+  };
+  const scored = { ...base, ...scoreProject(base) };
+ 
+  if (mode === 'live'){
+    try{
+      const saved = await insertProject(scored);
+      projects.push(saved[0] || { id: crypto.randomUUID(), ...scored });
+    }catch(e){
+      errEl.textContent = 'Could not save to Supabase (' + e.message + '). Added locally instead.';
+      projects.push({ id: crypto.randomUUID(), ...scored });
+    }
+  } else {
+    if (mode !== 'demo') mode = 'demo';
+    projects.push({ id: crypto.randomUUID(), ...scored });
+  }
+  e.target.reset();
+  showView('dashboard');
+};
+ 
+// Auto-connect on load using the built-in AcreSetu credentials, falling back to demo data.
+(async () => {
+  renderAll();
+  const ok = await tryConnect(DEFAULT_URL, DEFAULT_KEY, true);
+  if (!ok){ projects = demoData(); mode = 'demo'; renderAll(); }
+})();
+</script>
+ 
+</body>
+</html>
+ 
+
+
+
+
